@@ -1,0 +1,15 @@
+In Progress:
+
+
+In Purgatory:
+[] Leaderboard top 3
+
+Done:
+[x] Figure out who sent the message
+[x] Store messages sent and when last message was sent
+[x] Create a database of ids that can be retrieved for counting meows
+[x] Test to make sure the lowercase of the string received includes "meow" somewhere
+[x] Can only meow once every hour
+[x] Leaderboard for meows
+[x] Leaderboard meows sorted in Descending order
+[x] Delete meowboards after timeout

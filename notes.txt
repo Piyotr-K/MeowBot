@@ -1,0 +1,2 @@
+// Only monitor js files not json files as well
+nodemon --ext js

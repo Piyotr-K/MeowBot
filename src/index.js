@@ -81,6 +81,7 @@ client.on('messageCreate', (msg) => {
         }
         if (msg.content == "!meowboards") {
             let out = "";
+			let timeToDelete = 20000;
             out += "# Meowboards!\n";
             out += "_Only meows every hour count_\n";
             out += ""
@@ -110,7 +111,7 @@ client.on('messageCreate', (msg) => {
             // Delete the leaderboards message after 5 seconds
             // Then delete the original !meowboards message
             msg.reply(out).then(repliedMsg => {
-                setTimeout(() => repliedMsg.delete().then(msg.delete()), 5000);
+                setTimeout(() => repliedMsg.delete().then(msg.delete()), timeToDelete);
             });
         }
         else if (msg.content.toLowerCase().includes("meow")) {

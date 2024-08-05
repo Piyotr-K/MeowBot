@@ -38,7 +38,7 @@ function convertToTime(timestamp, mode) {
 }
 
 function read_scores(f_name) {
-    let contents = "";
+    var contents = "";
     fs.readFile(f_name, "utf-8", (err, jsonString)=> {
         if (err) {
             console.log("File read failed: " + err);
@@ -48,6 +48,108 @@ function read_scores(f_name) {
         contents = jsonString;
     });
     console.log("File data: " + contents);
+}
+
+/**
+ * Function for sorting the user_scores array in descending order
+ * @returns 
+ */
+function sort_leaderboards() {
+    var out = [];
+
+    for (var i in user_scores) {
+        // Giga Yek workaround for JSON Object sorting
+        out.push(
+            JSON.parse(`{"name": "${i}","score":${user_scores[i].score}}`
+            ));
+    }
+
+    // Sort by descending
+    out.sort(function(a, b) {
+        return b.score - a.score;
+    });
+
+    return out;
+}
+
+/**
+ * Function to handle hourly-meow channel based messages
+ * @param {*} msg 
+ * @returns 
+ */
+function handle_hourly(msg) {
+    if (addToUsers(msg.author.username, msg.createdTimestamp)) {
+        msg.react('😺').catch(console.error);
+        // Update database
+        fs.writeFile("data.json", JSON.stringify(user_scores), 'utf-8', err => {
+            if (err) {
+                console.log('Error writing file', err)
+            } else {
+                console.log('Successfully wrote file')
+            }
+        });
+    }
+    if (msg.content == "!meowboards") {
+        let out = "";
+        out += "# Meowboards!\n";
+        out += "_Only meows every hour count_\n";
+        out += ""
+
+        // Display array
+        var disp_arr = [];
+        disp_arr = sort_leaderboards();
+
+        // Top meower
+        out += "## Top meower:\n";
+        out += "## 🥇🐈 - " + disp_arr[0].name + " has meowed _" + disp_arr[0].score + "_ time(s)!\n";
+        // console.log(disp_arr);
+        for (let i = 1; i < disp_arr.length; i++) {
+            out += "### 🐈 - " + disp_arr[i].name + " has meowed _" + disp_arr[i].score + "_ time(s)!\n";
+        }
+        out += "\n";
+        // Delete the leaderboards message after 5 seconds
+        // Then delete the original !meowboards message
+        msg.reply(out).then(repliedMsg => {
+            setTimeout(() => repliedMsg.delete().then(msg.delete()), 5000);
+        });
+    }
+    else if (msg.content.toLowerCase().includes("meow")) {
+        u_name = msg.author.username
+
+        // Ignore meowbot messages
+        if (u_name == "MeowBot") return;
+
+        let curr_msg_t = msg.createdTimestamp;
+        let last_msg_t = user_scores[u_name]["last_sent"];
+        let diff = Math.floor((curr_msg_t - last_msg_t) / 1000);
+        console.log("Username: " + u_name);
+        console.log("Difference in seconds: " + diff);
+        // 3600 to convert to hours
+        if (diff >= 3600) {
+            msg.react('😺').catch(console.error);
+
+            // Update user info
+            user_scores[u_name].score = parseInt(user_scores[u_name].score) + 1;
+
+            // Update last meow sent
+            user_scores[u_name]["last_sent"] = msg.createdTimestamp;
+
+            // Update scores everytime
+            fs.writeFile("data.json", JSON.stringify(user_scores), 'utf-8', err => {
+                if (err) {
+                    console.log('Error writing file', err)
+                } else {
+                    console.log('Successfully wrote file')
+                }
+            });
+        } else {
+            let out = `You must wait ${60 - Math.floor(diff / 60)} minutes before the next meow will count!`;
+            msg.reply(out);
+            // msg.reply(out).then(repliedMsg => {
+            //     setTimeout(() => repliedMsg.delete().then(), 5000);
+            // });
+        }
+    }
 }
 
 const client = new Client({
@@ -68,88 +170,7 @@ client.on('ready', (c) => {
 
 client.on('messageCreate', (msg) => {
     if (msg.channel.name == "hourly-meow") {
-        if (addToUsers(msg.author.username, msg.createdTimestamp)) {
-            msg.react('😺').catch(console.error);
-            // Update database
-            fs.writeFile("data.json", JSON.stringify(user_scores), 'utf-8', err => {
-                if (err) {
-                    console.log('Error writing file', err)
-                } else {
-                    console.log('Successfully wrote file')
-                }
-            });
-        }
-        if (msg.content == "!meowboards") {
-            let out = "";
-            out += "# Meowboards!\n";
-            out += "_Only meows every hour count_\n";
-            out += ""
-
-            // Display array
-            var disp_arr = [];
-            for (var i in user_scores) {
-                // Giga Jick workaround for JSON Object sorting
-                disp_arr.push(
-                    JSON.parse(`{"name": "${i}","score":${user_scores[i].score}}`
-                    ));
-            }
-
-            // Sort by descending
-            disp_arr.sort(function(a, b) {
-                return b.score - a.score;
-            });
-
-            // Top meower
-            out += "## Top meower:\n";
-            out += "## 🥇🐈 - " + disp_arr[0].name + " has meowed _" + disp_arr[0].score + "_ time(s)!\n";
-            // console.log(disp_arr);
-            for (let i = 1; i < disp_arr.length; i++) {
-                out += "### 🐈 - " + disp_arr[i].name + " has meowed _" + disp_arr[i].score + "_ time(s)!\n";
-            }
-            out += "\n";
-            // Delete the leaderboards message after 5 seconds
-            // Then delete the original !meowboards message
-            msg.reply(out).then(repliedMsg => {
-                setTimeout(() => repliedMsg.delete().then(msg.delete()), 5000);
-            });
-        }
-        else if (msg.content.toLowerCase().includes("meow")) {
-            u_name = msg.author.username
-
-            // Ignore meowbot messages
-            if (u_name == "MeowBot") return;
-
-            let curr_msg_t = msg.createdTimestamp;
-            let last_msg_t = user_scores[u_name]["last_sent"];
-            let diff = Math.floor((curr_msg_t - last_msg_t) / 1000);
-            console.log("Username: " + u_name);
-            console.log("Difference in seconds: " + diff);
-            // 3600 to convert to hours
-            if (diff >= 3600) {
-                msg.react('😺').catch(console.error);
-
-                // Update user info
-                user_scores[u_name].score = parseInt(user_scores[u_name].score) + 1;
-
-                // Update last meow sent
-                user_scores[u_name]["last_sent"] = msg.createdTimestamp;
-
-                // Update scores everytime
-                fs.writeFile("data.json", JSON.stringify(user_scores), 'utf-8', err => {
-                    if (err) {
-                        console.log('Error writing file', err)
-                    } else {
-                        console.log('Successfully wrote file')
-                    }
-                });
-            } else {
-                let out = `You must wait ${60 - Math.floor(diff / 60)} minutes before the next meow will count!`;
-                msg.reply(out);
-                // msg.reply(out).then(repliedMsg => {
-                //     setTimeout(() => repliedMsg.delete().then(), 5000);
-                // });
-            }
-        }
+        // handle_hourly(msg);
     }
 });
 

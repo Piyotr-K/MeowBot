@@ -1,8 +1,7 @@
 In Progress:
 
-
 In Purgatory:
-[] Leaderboard top 3
+[] Differentiate leaderboards between servers
 
 Done:
 [x] Figure out who sent the message
